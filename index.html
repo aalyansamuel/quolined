@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Diario de una línea</title>
+<meta name="description" content="Una línea al día. Escríbela en veinte segundos y recuerda lo que viviste hace una semana, un mes o un año.">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Una línea">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="stylesheet" href="styles.css">
+<!-- PREFLIGHT:START -->
+<script>
+  (function () {
+    var r = document.documentElement;
+    r.classList.add('booting');
+    try {
+      var t = localStorage.getItem('dul.tema');
+      if (t === 'claro') r.setAttribute('data-theme', 'light');
+      else if (t === 'oscuro') r.setAttribute('data-theme', 'dark');
+      if (localStorage.getItem('dul.lock') === '1') r.classList.add('locked');
+    } catch (e) {}
+  })();
+</script>
+<!-- PREFLIGHT:END -->
+</head>
+<body>
+<!-- BODY:START -->
+<div class="app" id="app">
+  <main class="app-main" id="main">
+    <div class="demo-banner" id="demo-banner" role="note" hidden>
+      <span><b>Diario de ejemplo.</b> Lo que cambies aquí no se guarda.</span>
+      <button type="button" id="btn-demo-exit">Empezar el mío</button>
+    </div>
+
+    <!-- Hoy -->
+    <section class="view" id="v-hoy" aria-labelledby="hoy-date">
+      <header class="page-head">
+        <div>
+          <p class="eyebrow" id="hoy-weekday">&nbsp;</p>
+          <h1 class="large-title" id="hoy-date">Hoy</h1>
+        </div>
+      </header>
+      <div class="quote" id="hoy-frase" role="note" aria-label="Frase del día" hidden></div>
+      <div class="memories tile" id="memories" role="group" aria-label="Recuerdos"></div>
+      <div id="hoy-editor"></div>
+      <div class="extra" id="hoy-extra" hidden></div>
+    </section>
+
+    <!-- Calendario -->
+    <section class="view wide" id="v-calendario" aria-labelledby="cal-title" hidden>
+      <header class="page-head">
+        <h1 class="large-title" id="cal-title">Calendario</h1>
+      </header>
+
+      <div class="stats tile">
+        <div>
+          <p class="stat-label">Racha actual</p>
+          <p class="hero-num" id="st-cur">0<small>días</small></p>
+          <p class="hero-sub"><i class="dot" id="st-dot"></i><span id="st-cur-sub">Escribe hoy para empezar</span></p>
+        </div>
+        <div class="side-stats">
+          <div class="side-stat">
+            <span class="stat-label">Mejor racha</span>
+            <span class="v" id="st-best">0<small>días</small></span>
+          </div>
+          <div class="side-stat">
+            <span class="stat-label" id="st-year-k">Este año</span>
+            <span class="v" id="st-year">0<small>de 0 días</small></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="cal-top">
+        <div class="yearnav">
+          <button type="button" class="icon-btn" id="cal-prev" aria-label="Año anterior"></button>
+          <span class="year" id="cal-year" aria-live="polite">2026</span>
+          <button type="button" class="icon-btn" id="cal-next" aria-label="Año siguiente"></button>
+        </div>
+        <div class="seg" id="cal-mode" role="group" aria-label="Qué muestran los cuadros">
+          <button type="button" data-mode="entradas" aria-pressed="true">Entradas</button>
+          <button type="button" data-mode="animo" aria-pressed="false">Ánimo</button>
+        </div>
+      </div>
+
+      <div class="cal" id="cal" data-mode="entradas">
+        <div class="months" id="months"></div>
+      </div>
+      <div class="legend" id="cal-legend"></div>
+      <button type="button" class="card-link" id="btn-summary" hidden>
+        <span class="card-icon" id="btn-summary-icon"></span>
+        <span><b id="btn-summary-title">Resumen del año</b><small>Tus mejores días y las palabras que más usaste</small></span>
+        <span class="chev-slot"></span>
+      </button>
+    </section>
+
+    <!-- Archivo -->
+    <section class="view" id="v-archivo" aria-labelledby="arc-title" hidden>
+      <header class="page-head">
+        <h1 class="large-title" id="arc-title">Archivo</h1>
+        <button type="button" class="icon-btn" id="btn-sort" aria-label="Cambiar el orden" title="Cambiar el orden"></button>
+      </header>
+      <div class="seg arc-seg" id="arc-mode" role="group" aria-label="Qué mostrar" hidden>
+        <button type="button" data-arc="lineas" aria-pressed="true">Mis líneas</button>
+        <button type="button" data-arc="frases" aria-pressed="false">Frases del día</button>
+      </div>
+      <div class="search" role="search">
+        <span id="search-icon"></span>
+        <label class="sr-only" for="q">Buscar en el diario</label>
+        <input type="search" id="q" placeholder="Buscar una palabra o #etiqueta" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
+        <button type="button" class="clear" id="q-clear" aria-label="Borrar la búsqueda" hidden></button>
+      </div>
+      <div class="chips" id="chips" role="group" aria-label="Filtrar por etiqueta" hidden></div>
+      <p class="list-note" id="arc-note" aria-live="polite"></p>
+      <div id="arc-list"></div>
+    </section>
+
+    <!-- Ajustes -->
+    <section class="view" id="v-ajustes" aria-labelledby="aj-title" hidden>
+      <header class="page-head">
+        <h1 class="large-title" id="aj-title">Ajustes</h1>
+      </header>
+
+      <div class="group" id="g-preview" hidden>
+        <div class="list">
+          <div class="row static">
+            <span class="row-text">
+              <b>Estás en la vista previa</b>
+              <p>Para instalarla en el iPhone, Android u ordenador y usarla sin conexión, súbela a tu propio enlace (por ejemplo, GitHub Pages). Lo que escribas aquí se queda en este navegador.</p>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="group">
+        <h2 class="group-title">Frase del día</h2>
+        <div class="list">
+          <label class="row" for="sw-frase">
+            <span>Mostrar una frase motivadora</span>
+            <input type="checkbox" class="switch" id="sw-frase" switch>
+          </label>
+        </div>
+        <p class="group-foot">Cada día aparece una frase nueva en Hoy y se guarda con ese día. Las anteriores están en Archivo → Frases del día.</p>
+      </div>
+
+      <div class="group">
+        <h2 class="group-title">Recordatorio</h2>
+        <div class="list">
+          <label class="row" for="sw-rem">
+            <span>Aviso diario</span>
+            <input type="checkbox" class="switch" id="sw-rem" switch>
+          </label>
+          <label class="row" id="row-hora" for="in-hora">
+            <span>Hora</span>
+            <input type="time" id="in-hora" value="21:30">
+          </label>
+          <button type="button" class="row" id="row-atajo" hidden>
+            <span>Aviso con Atajos de iOS</span>
+            <span class="val chev-slot"></span>
+          </button>
+        </div>
+        <p class="group-foot" id="rem-foot"></p>
+      </div>
+
+      <div class="group">
+        <h2 class="group-title">Privacidad</h2>
+        <div class="list">
+          <label class="row" for="sw-pin">
+            <span>Bloqueo con PIN</span>
+            <input type="checkbox" class="switch" id="sw-pin" switch>
+          </label>
+          <button type="button" class="row" id="row-pin-change" hidden>
+            <span>Cambiar el PIN</span>
+            <span class="val chev-slot"></span>
+          </button>
+          <label class="row" id="row-pin-tras" for="sel-tras" hidden>
+            <span>Pedir el PIN</span>
+            <select id="sel-tras">
+              <option value="0">Al momento</option>
+              <option value="60">Tras 1 minuto</option>
+              <option value="300">Tras 5 minutos</option>
+            </select>
+          </label>
+        </div>
+        <p class="group-foot">El PIN impide que otra persona lea tu diario desde este dispositivo. Las entradas no se cifran.</p>
+      </div>
+
+      <div class="group">
+        <h2 class="group-title">Copia de seguridad</h2>
+        <div class="list">
+          <button type="button" class="row action" id="row-export">
+            <span>Exportar copia</span>
+            <span class="val">JSON</span>
+          </button>
+          <button type="button" class="row action" id="row-import">
+            <span>Importar copia</span>
+            <span class="val">JSON</span>
+          </button>
+          <input type="file" id="file-import" accept="application/json,.json" hidden>
+        </div>
+        <p class="group-foot" id="backup-foot"></p>
+      </div>
+
+      <div class="group" id="g-tema">
+        <h2 class="group-title">Aspecto</h2>
+        <div class="list">
+          <div class="row">
+            <span>Tema</span>
+            <div class="seg" id="seg-tema" role="group" aria-label="Tema">
+              <button type="button" data-tema="auto" aria-pressed="true">Auto</button>
+              <button type="button" data-tema="claro" aria-pressed="false">Claro</button>
+              <button type="button" data-tema="oscuro" aria-pressed="false">Oscuro</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="group">
+        <h2 class="group-title">App</h2>
+        <div class="list">
+          <button type="button" class="row action" id="row-install" hidden>
+            <span>Instalar en este dispositivo</span>
+          </button>
+          <button type="button" class="row" id="row-install-ios" hidden>
+            <span>Añadir a la pantalla de inicio</span>
+            <span class="val chev-slot"></span>
+          </button>
+          <div class="row" id="row-installed" hidden>
+            <span>Instalada en este dispositivo</span>
+            <span class="val check-slot"></span>
+          </div>
+          <button type="button" class="row action" id="row-update" hidden>
+            <span>Cargar la versión nueva</span>
+          </button>
+          <button type="button" class="row" id="row-demo">
+            <span id="row-demo-label">Ver un diario de ejemplo</span>
+            <span class="val chev-slot"></span>
+          </button>
+        </div>
+        <p class="group-foot" id="app-foot"></p>
+      </div>
+
+      <div class="group">
+        <div class="list">
+          <button type="button" class="row danger" id="row-wipe">
+            <span>Borrar todos los datos</span>
+          </button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <nav class="tabbar" id="tabbar" aria-label="Secciones">
+    <button type="button" class="tab" data-tab="hoy" aria-current="page"><span class="tab-icon"></span><span>Hoy</span></button>
+    <button type="button" class="tab" data-tab="calendario"><span class="tab-icon"></span><span>Calendario</span></button>
+    <button type="button" class="tab" data-tab="archivo"><span class="tab-icon"></span><span>Archivo</span></button>
+    <button type="button" class="tab" data-tab="ajustes"><span class="tab-icon"></span><span>Ajustes</span></button>
+  </nav>
+</div>
+
+<div class="lock" id="lock" role="dialog" aria-modal="true" aria-label="Diario bloqueado" hidden></div>
+<div class="toast" id="toast" role="status" aria-live="polite"><span id="toast-msg"></span><button type="button" id="toast-btn" hidden></button></div>
+<div class="tip" id="tip" role="tooltip" hidden></div>
+<noscript><p style="padding:24px;font:17px/1.4 system-ui,sans-serif">Diario de una línea necesita JavaScript para funcionar.</p></noscript>
+<!-- BODY:END -->
+<script src="app.js"></script>
+</body>
+</html>
